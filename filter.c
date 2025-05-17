@@ -47,8 +47,6 @@ int main(void) {
 		
 		//ensure file is of the correct type
 		if(bf.bfType != 0x4d42 || bi.biBitCount != 24 || bi.biCompression != 0) {
-			printf("%d\n", i);
-			printf("Type: %d, OffBits: %d, Size: %d, BitCount: %d, Compression: %d\n", bf.bfType, bf.bfOffBits, bi.biSize, bi.biBitCount, bi.biCompression);
 			for(int x = 0; x < 4; x++) {
 				fclose(images[x]);
 				fclose(edits[x]);
@@ -71,7 +69,6 @@ int main(void) {
 		}
 		
 		int padding = (4 - (width * sizeof(RGBTRIPLE))%4)%4;
-		printf("%d/n", bi.biBitCount);
 
 		//move through file lines
 		for(int j = 0; j < height; j++) {
@@ -80,10 +77,10 @@ int main(void) {
 		}
 
 		//apply filters to image in order 
-		edges(height, width, image);
 		blur(height, width, image);
+		edges(height, width, image);
 		//greyscale(height, width, image);
-		reflect(height, width, image);
+		//reflect(height, width, image);
 		
 		fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, edits[i]);
 		fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, edits[i]);

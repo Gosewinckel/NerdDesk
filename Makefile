@@ -1,2 +1,2 @@
 NerdDesk:
-	clang filter.c filters.c
+	clang filter.c filters.c -lm
