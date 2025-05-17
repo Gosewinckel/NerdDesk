@@ -3,7 +3,7 @@
 #include "filters.h"
 
 
-int main(void) {
+int filter(void) {
 	//get images
 	FILE *images[4];
 	images[0] = fopen("images/300px-Unsettled_Tom.bmp", "r");
@@ -79,8 +79,8 @@ int main(void) {
 		//apply filters to image in order 
 		blur(height, width, image);
 		edges(height, width, image);
-		//greyscale(height, width, image);
-		//reflect(height, width, image);
+		greyscale(height, width, image);
+		reflect(height, width, image);
 		
 		fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, edits[i]);
 		fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, edits[i]);
