@@ -65,6 +65,7 @@ int filter(void) {
 				fclose(images[x]);
 				fclose(edits[x]);
 			}
+			free(image);
 			return 4;
 		}
 		

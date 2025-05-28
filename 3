@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
+#include <dirent.h>
+#include <string.h>
+#include "LZW.h"
+
+struct file_node {
+	char *name;
+	struct file_node *next;
+}; typedef struct file_node file_node;
+	
+file_node* makeNode(char *data) {
+	file_node *new_node = (file_node *)malloc(sizeof(file_node));
+	if(new_node == NULL) {
+		free(new_node);
+		return NULL;
+	}
+	new_node->name = data;
+	return new_node;
+}
+
+//compression setup
+int compression(void) {
+	//linked list for file names
+	file_node *head = makeNode("");	
+	//find directory and start pulling file names
+	const char *path = ".";
+	struct dirent *entry;
+	DIR *dir = opendir(path);
+	int count = 0;
+	if(dir == NULL) {
+		return 1;
+	}
+	
+	//copy file names into a linked list
+	while((entry = readdir(dir)) != NULL) {
+		//find and save only .bmp files to ll
+		int size = strlen(entry->d_name);
+		char sub[4];
+		strncpy(sub, entry->d_name + size - 4, 4);
+		if(strcmp(entry->d_name, ".bmp") == 0) {
+			if(head->next == NULL) {
+				head->name = entry->d_name;
+			}
+			else {
+				file_node temp;
+				temp.next = head;
+				temp.name = entry->d_name;
+				*head = temp;
+			}
+			count++;
+		}
+	}
+	closedir(dir);
+
+	//make array of .bmp files
+	FILE *images[count];
+	char *names[count];
+	file_node *temp = head;
+	for(int i = 0; i < count; i++) {
+		images[i] = fopen(temp->name, "r");
+		temp = temp->next;
+		names[count] = temp->name;
+	}
+
+	for(int i = 0; i < count; i++) {
+		BITMAPFILEHEADER bf;
+		fread(&bf, sizeof(BITMAPFILEHEADER), 1, images[i]);
+
+		BITMAPINFOHEADER bi;
+		fread(&bi, sizeof(BITMAPINFOHEADER), 1, images[i]);
+
+		int height = abs(bi.biHeight);
+		int width = bi.biWidth;
+
+		RGBTRIPLE(*image)[width] = calloc(height, sizeof(RGBTRIPLE));
+		if(image[width] == NULL) {
+			for(int j = 0; j < count; j++) {
+				fclose(images[j]);
+			}	
+			free(image);
+			return 2;
+		}
+
+
+		int padding = (4 - (width * sizeof(RGBTRIPLE))%4)%4;
+
+		//move through file lines
+		for(int j = 0; j < height; j++) {
+			fread(image[j], sizeof(RGBTRIPLE), width, images[i]);
+			fseek(images[i], padding, SEEK_CUR);
+		}
+
+		//compression algorythm
+		sleep(1);
+		LZW(names[i], height, width, image);
+		
+		fclose(images[i]);
+		FILE *temp = fopen(names[i], "w");
+		
+		fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, temp);
+		fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, temp);
+
+
+		for(int j = 0; j < height; j++) {
+			fwrite(image[j], sizeof(RGBTRIPLE), width, temp);
+			for(int k = 0; k < padding; k++) {
+				fputc(0x00, temp);
+			}
+		}
+		free(image);
+		fclose(temp);
+	}
+	return 0;
+}

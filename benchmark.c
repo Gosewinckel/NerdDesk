@@ -1,5 +1,6 @@
 #include "filter.h"
 #include "compile.h"
+#include "compression.h"
 #include <time.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -30,5 +31,11 @@ void benchmark(void) {
 	compile_time = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec)/1e9;
 	printf("Time Taken: %fs\n", (float)compile_time);
 	printf("========================================\n");
+	//start compression test
+	printf("Starting file compression\n");
+	ticks = clock();
+	compression();
+	ticks = clock() - ticks;
+	printf("Time taken: %fs\n", (float)ticks/ CLOCKS_PER_SEC);
 	return;
 }
