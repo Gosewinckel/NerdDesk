@@ -1,4 +1,4 @@
-#include "LZW.h"
+#include "bitmap.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,6 +88,9 @@ const char *LZW(FILE *file, char *name) {
 		fseek(file, padding, SEEK_CUR);
 	}
 
+	fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, temp);
+	fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, temp);
+
 	//define initial dictionary
 	int pixels = width * height * 3;
 	int idx = 0;
@@ -101,8 +104,14 @@ const char *LZW(FILE *file, char *name) {
 		dictionary[i].val = "";
 	}
 	for(int i = 0; i < 256; i++) {
-		dictionary[i].val = (char *)i;
+		char buff[idx * 4];
+		sprintf(buff, "%d", i);
+		dictionary[i].val = buff;
 	}
+
+
+	//find the longest sequence in the dictionary that matches the current input
+	
 
 	//define dictionary
 	return c_file_name;
