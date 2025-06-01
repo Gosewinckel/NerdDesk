@@ -63,57 +63,9 @@ int compression(void) {
 		temp = temp->next;
 	}
 	for(int i = 0; i < count; i++) {
-		BITMAPFILEHEADER bf;
-		fread(&bf, sizeof(BITMAPFILEHEADER), 1, images[i]);
-
-		BITMAPINFOHEADER bi;
-		fread(&bi, sizeof(BITMAPINFOHEADER), 1, images[i]);
-
-		int height = abs(bi.biHeight);
-		int width = bi.biWidth;
-
-		RGBTRIPLE(*image)[width] = calloc(height, width * sizeof(RGBTRIPLE));
-		if(image[width] == NULL) {
-			for(int j = 0; j < count; j++) {
-				fclose(images[j]);
-			}	
-			free(image);
-			return 3;
-		}
-
-
-		int padding = (4 - (width * sizeof(RGBTRIPLE))%4)%4;
-		//move through file lines
-		for(int j = 0; j < height; j++) {
-			fread(image[j], sizeof(RGBTRIPLE), width, images[i]);
-			fseek(images[i], padding, SEEK_CUR);
-		}
-	
 		//compression algorythm
 		//must free memory returned by LZW
 		LZW(images[i], names[i]);
-
-		fclose(images[i]);
-		FILE *temp = fopen(names[i], "w");
-		if(temp == NULL) {
-			printf("could not open temp file\n");
-			for(int j = 0; j <= i; j++) {
-				fclose(images[j]);
-			}
-			free(image);
-			return 4;
-		}
-		fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, temp);
-		fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, temp);
-
-		for(int j = 0; j < height; j++) {
-			fwrite(image[j], sizeof(RGBTRIPLE), width, temp);
-			for(int k = 0; k < padding; k++) {
-				fputc(0x00, temp);
-			}
-		}
-		free(image);
-		fclose(temp);
 	}
 	return 0;
 }

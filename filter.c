@@ -56,7 +56,6 @@ int filter(void) {
 		//image dimensions
 		int height = abs(bi.biHeight);
 		int width  = bi.biWidth;
-		
 		//Allocote mem for image
 		RGBTRIPLE(*image)[width] = calloc(height, width * sizeof(RGBTRIPLE));
 		if(image == NULL) {

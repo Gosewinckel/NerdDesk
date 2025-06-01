@@ -7,34 +7,46 @@
 
 
 struct dict {
-	//key will be number of values in sequence
+	//key is last val in sequence
 	int key;
-	//string form of sequence of number vals
+	//sequence of vals separated by ,'s
 	char *val;
 }; typedef struct dict dict_t;
 
-int hash(int key) {
-	//make sure the index starts at 0 not 1
-	if(key == 1) {
-		return 0;
-	} 
-	return pow(256, key - 1);
+int hash(int key, size_t dict_size) {
+	int scale = (dict_size * 0.67)/256;
+	return scale * key;
 }
 
-//return index to a dictionary entry
-int search(int key, char *seq, dict_t dict[]) {
+//generates key from a set of vals
+int generate_key(char *val) {
+	int key = 0;
+	int idx = strlen(val) - 1;
+	char buff[4];
+	buff[3] = '\0';
+	int dig = 2;
+	while(val[idx] != ',' && val[idx != ' ']) {
+		buff[dig] = val[idx];
+	}
+	key = atoi(buff);
+	return key;
+}
+
+//return index to a free dictionary entry
+int search(int key, char *seq, dict_t dict[], size_t dict_size) {
 	//checks region sequence could be held
-	for(int i = hash(key); dict[i].val != NULL; i++) {
-		//return index of stored val
+	for(int i = hash(key, dict_size); dict[i].val != NULL && i < dict_size; i++) {
+		//return -1 if entry exists
 		if(strcmp(seq, dict[i].val) == 0) {
-			return i;
+			return -1;
 		}
+		//return first available index in dict
 		if(dict[i].val == NULL) {
 			return i;
 		}
 	}	
-	//in case of first val
-	return 0;
+	//in case of error
+	return -1;
 }
 
 bool check(int idx, char *seq, dict_t dict[]) {
@@ -44,16 +56,23 @@ bool check(int idx, char *seq, dict_t dict[]) {
 	return false;
 }
 
-void insert(int idx, int key, char *seq, dict_t dict[]) {
+//create a new dict entry
+dict_t *make_dict_entry(int idx, int key, char *seq) {
 	dict_t *entry =(dict_t*) malloc(sizeof(dict_t));
 	entry->key = key;
 	entry->val = seq;
-	dict[idx] = *entry;
-	return;
+	return entry;
 }
 
-//recursive function that takes the entire input and checks inputs until it cant find a match
-char *new_word();
+//if able insert set of vals into the dictionary
+void insert(char *val, dict_t dict[], size_t dict_size) {
+	int key = generate_key(val);
+	int ins = search(key, val, dict, dict_size);
+	if(ins != -1) {
+		dict_t *new_dict = make_dict_entry(ins, key, val);
+		dict[ins] = *new_dict;
+	}
+}
 
 //returns name of new file
 const char *LZW(FILE *file, char *name) {
@@ -62,7 +81,6 @@ const char *LZW(FILE *file, char *name) {
 	char *c_file_name = malloc(len);
 	strcpy(c_file_name, name);
 	strcpy(&c_file_name[len - 6], ".cbmp");
-	printf("%s\n", c_file_name);
 	FILE *temp = fopen(c_file_name, "w");
 
 	BITMAPFILEHEADER bf;
@@ -78,41 +96,22 @@ const char *LZW(FILE *file, char *name) {
 	if(image == NULL) {
 		fclose(temp);
 		free(image);
+		printf("Image = NULL\n");
 		return NULL;
 	}
-
 	int padding = (4 - (width * sizeof(RGBTRIPLE))%4)%4;
 	//move through file lines
 	for(int j = 0; j < height; j++) {
 		fread(image[j], sizeof(RGBTRIPLE), width, file);
 		fseek(file, padding, SEEK_CUR);
 	}
-
 	fwrite(&bf, sizeof(BITMAPFILEHEADER), 1, temp);
 	fwrite(&bi, sizeof(BITMAPINFOHEADER), 1, temp);
 
 	//define initial dictionary
 	int pixels = width * height * 3;
-	int idx = 0;
-	int total = 0;
-	while(total < pixels) {
-		idx++;
-		total += pow(256, idx);
-	}
-	dict_t dictionary[total];
-	for(int i = 0; i < total; i++) {
-		dictionary[i].val = "";
-	}
-	for(int i = 0; i < 256; i++) {
-		char buff[idx * 4];
-		sprintf(buff, "%d", i);
-		dictionary[i].val = buff;
-	}
-
 
 	//find the longest sequence in the dictionary that matches the current input
-	
 
-	//define dictionary
 	return c_file_name;
 }
