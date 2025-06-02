@@ -56,6 +56,39 @@ bool check(int idx, char *seq, dict_t dict[]) {
 	return false;
 }
 
+dict_t make_dict[](int pixels) {
+	//allocate enough space for max possible vals + min possible at last hash
+	//max represents the maximum possible values the dict needs to hold
+	int max = 0;
+	int total = 0;
+	int i = 0;
+	while(true) {
+		while(total < pow(256, i) * i && total < pixels) {
+			max++;
+			total += i;
+		}
+		i++;
+		if(total >= pixels) {
+			break;
+		}
+	}
+	//reset total and calculate buffer of size min values
+	//min represents the minimum number of values and the maximum number of all the same colour,
+	//needs to be added to the end in case every hash is identical
+	int min = -1;
+	total = 0;
+	while(total < pixels) {
+		min++;
+		total = total + min;
+	}
+	int size = min + max;
+	dict_t *dict = malloc(sizeof(dict_t) * size);
+	for(int i = 0; i < size; i++) {
+		dict[i] == NULL;
+	}
+	return dict;
+}
+
 //create a new dict entry
 dict_t *make_dict_entry(int idx, int key, char *seq) {
 	dict_t *entry =(dict_t*) malloc(sizeof(dict_t));
@@ -72,6 +105,13 @@ void insert(char *val, dict_t dict[], size_t dict_size) {
 		dict_t *new_dict = make_dict_entry(ins, key, val);
 		dict[ins] = *new_dict;
 	}
+}
+
+void clear(dict_t dict[], size_t dict_size) {
+	for(int i = 0; i < dict_size; i++) {
+		free(dict[i]);
+	}
+	free dict;
 }
 
 //returns name of new file
@@ -110,7 +150,7 @@ const char *LZW(FILE *file, char *name) {
 
 	//define initial dictionary
 	int pixels = width * height * 3;
-
+	dict_t dict[] = make_dict(pixels);
 	//find the longest sequence in the dictionary that matches the current input
 
 	return c_file_name;
