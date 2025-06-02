@@ -138,13 +138,20 @@ const char *LZW(FILE *file, char *name) {
 	int pixels = width * height * 3;
 	dict_t *dict = make_dict(pixels);
 	for(int i = 0; i < 256; i++) {
-
+		char *temp = "";
+		sprintf(temp, "%d,", i);
+		printf("%s\n", temp);
 	}
 	
 	//find the longest sequence in the dictionary that matches the current input
 	int start = 0; 
 	int current = 0;
 	char *val = "";
+	while(start < pixels) {
+		while(current < pixels) {
+
+		}
+	}
 
 	free(dict);
 	return c_file_name;
