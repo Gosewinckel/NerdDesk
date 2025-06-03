@@ -56,7 +56,7 @@ bool check(int idx, char *seq, dict_t dict[]) {
 	return false;
 }
 
-dict_t *make_dict(int pixels) {
+size_t dict_size(int pixels) {
 	//allocate enough space for max possible vals + min possible at last hash
 	//max represents the maximum possible values the dict needs to hold
 	int max = 0;
@@ -82,6 +82,10 @@ dict_t *make_dict(int pixels) {
 		total = total + min;
 	}
 	int size = min + max;
+	return size;
+}
+
+dict_t *make_dict(int size) {
 	dict_t *dict = malloc(sizeof(dict_t) * size);
 	for(int i = 0; i < size; i++) {
 		dict[i].val = NULL;
@@ -136,7 +140,8 @@ const char *LZW(FILE *file, char *name) {
 
 	//define initial dictionary
 	int pixels = width * height * 3;
-	dict_t *dict = make_dict(pixels);
+	int size_of_dict = dict_size(pixels);
+	dict_t *dict = make_dict(size_of_dict);
 	for(int i = 0; i < 256; i++) {
 		char temp[5];
 		sprintf(temp, "%d,", i);
@@ -152,14 +157,13 @@ const char *LZW(FILE *file, char *name) {
 		max_val_len++;
 		max_pix_count += max_val_len;
 	}
-	char *output = calloc(max_val_len, sizeof(char) * 4);	
-	while(start < pixels) {
-		char *next_val = calloc(max_val_len, sizeof(char) * 4);
-		while(current < pixels) {
-			
-		}
-	}
+	char max_num[15];
+	sprintf(max_num, "%d", size_of_dict);
+	int max_size_of_val = strlen(max_num);
+	char *output = malloc(size_of_dict * (max_size_of_val + 1));  //holds total output	
+	char *sequence = calloc(max_val_len, sizeof(char) * 4);		  //holds current longest sequence
 	
+
 	free(dict);
 	return c_file_name;
 }
