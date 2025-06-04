@@ -33,8 +33,9 @@ int generate_key(char *val) {
 }
 
 //return index to a free dictionary entry
-int search(int key, char *seq, dict_t dict[], size_t dict_size) {
+int search(char *seq, dict_t dict[], size_t dict_size) {
 	//checks region sequence could be held
+	int key = generate_key(seq);
 	for(int i = hash(key, dict_size); dict[i].val != NULL && i < dict_size; i++) {
 		//return -1 if entry exists
 		if(strcmp(seq, dict[i].val) == 0) {
@@ -95,13 +96,10 @@ dict_t *make_dict(int size) {
 }
 
 //if able insert set of vals into the dictionary
-void insert(char *val, dict_t dict[], size_t dict_size) {
+void insert(char *val, dict_t dict[], int idx) {
 	int key = generate_key(val);
-	int ins = search(key, val, dict, dict_size);
-	if(ins != -1) {
-		dict[ins].val = val;
-		dict[ins].key = generate_key(val);
-	}
+	dict[idx].val = val;
+	dict[idx].key = generate_key(val);
 }
 
 //returns name of new file
@@ -161,9 +159,27 @@ const char *LZW(FILE *file, char *name) {
 	sprintf(max_num, "%d", size_of_dict);
 	int max_size_of_val = strlen(max_num);
 	char *output = malloc(size_of_dict * (max_size_of_val + 1));  //holds total output	
-	char *sequence = calloc(max_val_len, sizeof(char) * 4);		  //holds current longest sequence
+	char *sequence = malloc(max_val_len * sizeof(char) * 4);	  //holds current longest sequence
+	char *next_seq = malloc(max_val_len * sizeof(char) * 4);
+	for(int i = 0; i < height; i++) {
+		for(int j = 0; j < width; j++) {
+			char buff[5];
+			sprintf(buff, "%d,", image[i][j].rgbtRed);
+			strcat(next_seq, buff);
+			int dict_idx = search(next_seq, dict, size_of_dict);
+			if(strcmp(dict_idx != -1) {
+				insert(next_seq, dict, dict_idx);
+				char new_idx[15];
+				sprintf(new_idx, "%d,", dict_idx);
+				strcat(output, new_idx);
+				memset(next_seq, 0, strlen(next_seq));
+			}
+		}
+	}	
 	
-
+	free(output);
+	free(sequence);
+	free(next_seq);
 	free(dict);
 	return c_file_name;
 }
