@@ -47,11 +47,10 @@ int search(char *seq, dict_t dict[], size_t dict_size) {
 	for(int i = hash(key, dict_size); dict[i].val != NULL && i < dict_size; i++) {
 		//return -1 if entry exists
 		if(strcmp(seq, dict[i].val) == 0) {
-			return -1;
+			return i;
 		}
 		//return first available index in dict
 		if(strcmp(dict[i].val, ",") == 0) {
-			printf("%d\n", i);
 			return i;
 		}
 	}	
@@ -98,7 +97,7 @@ size_t dict_size(long pixels) {
 dict_t *make_dict(long size) {
 	dict_t *dict = malloc(sizeof(dict_t) * size);
 	for(long i = 0; i < size; i++) {
-		dict[i].val = NULL;
+		dict[i].val = ",";
 		dict[i].key = -1;
 	}
 	return dict;
@@ -151,10 +150,17 @@ const char *LZW(FILE *file, char *name) {
 	dict_t *dict = make_dict(size_of_dict);
 	for(int i = 0; i < 256; i++) {
 		char init_buff[10];
-		sprintf(init_buff, ",%d,", i);
+		sprintf(init_buff, "%d,", i);
 		long dict_key = generate_key(init_buff);
 		long dict_idx = hash(dict_key, size_of_dict);
+		printf("%ld\n", dict_idx);
 		insert(init_buff, dict, dict_idx);
+	}
+	
+	for(int i = 0; i < size_of_dict; i++) {
+		if(strcmp(dict[i].val, ",") != 0) {
+			//printf("%s, %d\n", dict[i].val, i);
+		}
 	}
 	
 	//find the longest sequence in the dictionary that matches the current input
@@ -180,26 +186,18 @@ const char *LZW(FILE *file, char *name) {
 			sprintf(buff, "%d,", image[i][j].rgbtRed);
 			strcat(next_seq, buff);
 			long dict_idx = search(next_seq, dict, size_of_dict);
-			printf("%s\n", next_seq);	
 
-			//in case of new sequence, add to dictionary, 
-			if(dict_idx != -1) {
-				printf("test1\n");
-				insert(next_seq, dict, dict_idx);
-				char new_idx[15];
-				sprintf(new_idx, "%ld,", dict_idx);
-				strcat(output, idx_last_known_seq);
-				memset(next_seq, 0, strlen(next_seq));
-				memset(sequence, 0, strlen(sequence));
-			}
-			
-			//in case of known sequence
-			else {
-				//printf("test2\n");
+			//in case of known sequence, 
+			if(strcmp(dict[dict_idx].val, next_seq) == 0) {
 				char known_idx[5];
-				sprintf(known_idx, "%ld,", dict_idx);
+				sprintf(known_idx, "%ld", dict_idx);
 				idx_last_known_seq = known_idx;
 				strcat(sequence, buff);
+			}
+			
+			//in case of new sequence, add to dictionary
+			else if(strcmp(dict[dict_idx].val, ",") == 0) {
+				strcat(output, idx_last_known_seq);
 			}
 		}
 	}	
