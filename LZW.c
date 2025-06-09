@@ -1,4 +1,5 @@
 #include "bitmap.h"
+#include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,107 +8,88 @@
 
 
 struct dict {
-	//key is last val in sequence
-	long key;
+	uint64_t key;
 	//sequence of vals separated by ,'s
-	char *val;
+	uint8_t *sequence;
+	//size of val array
+	size_t seq_len;
 }; typedef struct dict dict_t;
 
-long hash(long key, size_t dict_size) {
-	long scale = (dict_size * 0.67)/256;
-	return scale * key;
+uint32_t hash(uint8_t seq[], size_t seq_len) {
+	uint64_t hash = 14695981039346656037u; 
+	for(int i = 0; i < seq_len; i++) {
+		hash ^= seq[i];
+		hash *= 1099511628211u;
+	}
+	return hash;
 }
 
-//generates key from a set of vals
-long generate_key(char *val) {
-	long key = 0;
-	int idx = strlen(val) - 2;
-	char buff[10];
-	while(val[idx] != ',') {
-		char *dig = &val[idx];
-		int pos = strlen(buff);
-		buff[pos] = *dig;
-		buff[pos + 1] = '\0';
-		idx--;
+bool check_seq(uint8_t seq[], size_t seq_len, dict_t dict[], uint64_t key) {
+	if(seq_len != dict[key].seq_len) {
+		return false;
 	}
-	int buff_len = strlen(buff);
-	char rev[buff_len];
-	for(int i = 0; i < buff_len; i++) {
-		rev[i] = buff[buff_len - i - 1];
+	for(int i = 0; i < seq_len; i++) {
+		if(seq[i] != dict[key].sequence[i]) {
+			return false;
+		}
 	}
-	rev[buff_len] = '\0';
-	key = atoi(rev);
-	return key;
+	return true;
 }
 
-//return index to a free dictionary entry
-int search(char *seq, dict_t dict[], size_t dict_size) {
-	//checks region sequence could be held
-	long key = generate_key(seq);
-	for(int i = hash(key, dict_size); dict[i].val != NULL && i < dict_size; i++) {
-		//return -1 if entry exists
-		if(strcmp(seq, dict[i].val) == 0) {
+//return index to next free dictionary element of index of existing sequence
+int search(uint64_t key,  dict_t dict[], size_t dict_size, uint8_t seq[], size_t seq_len, bool *check_sequence) {
+	key = key % dict_size;
+	for(uint64_t i = key; i < dict_size; i++) {
+		//if dict location is empty, return location
+		if(dict[i].sequence == NULL) {
 			return i;
 		}
-		//return first available index in dict
-		if(strcmp(dict[i].val, ",") == 0) {
+		*check_sequence = check_seq(seq, seq_len, dict, key);
+		//if sequence is correct return the index
+		if(check_sequence) {
 			return i;
 		}
-	}	
+	}
 	//in case of error
 	return -1;
 }
 
-bool check(int idx, char *seq, dict_t dict[]) {
-	if(strcmp(seq, dict[idx].val) == 0) {
-		return true;
-	}
-	return false;
-}
-
-size_t dict_size(long pixels) {
-	//allocate enough space for max possible vals + min possible at last hash
-	//max represents the maximum possible values the dict needs to hold
-	long max = 0;
-	long total = 0;
-	long i = 0;
-	while(true) {
-		while(total < pow(256, i) * i && total < pixels) {
-			max++;
-			total += i;
-		}
-		i++;
-		if(total >= pixels) {
+//make dictionary and calculate size of dictionary size in dict_size pointer
+dict_t *make_dict(long pixels, size_t *dict_size) {
+	*dict_size = 2;
+	for(int i = 1; i < pixels; i++) {
+		*dict_size *= 2;
+		if(*dict_size >= pixels) {
 			break;
 		}
 	}
-	//reset total and calculate buffer of size min values
-	//min represents the minimum number of values and the maximum number of all the same colour,
-	//needs to be added to the end in case every hash is identical
-	long min = -1;
-	total = 0;
-	while(total < pixels) {
-		min++;
-		total = total + min;
+	dict_t *dict = malloc(sizeof(dict_t) * *dict_size);
+	if(dict == NULL) {
+		printf("failed to allocate memory\n");
+		return NULL;
 	}
-	long size = min + max;
-	return size;
-}
-
-dict_t *make_dict(long size) {
-	dict_t *dict = malloc(sizeof(dict_t) * size);
-	for(long i = 0; i < size; i++) {
-		dict[i].val = ",";
+	for(int i = 0; i < *dict_size; i++) {
 		dict[i].key = -1;
+		dict[i].sequence = NULL;
+		dict[i].seq_len = 0;
 	}
 	return dict;
 }
 
 //if able insert set of vals into the dictionary
-void insert(char *val, dict_t dict[], long idx) {
-	int key = generate_key(val);
-	dict[idx].val = val;
+void insert(dict_t dict[], uint64_t key, uint8_t sequence[], size_t seq_len, int idx) {
 	dict[idx].key = key;
+	dict[idx].sequence = sequence;
+	dict[idx].seq_len = seq_len;
+	return;
+}
+
+void free_dict(dict_t dict[], size_t dict_size) {
+	for(int i = 0; i < dict_size; i++) {
+		free(dict[i].sequence);
+	}
+	free(dict);
+	return;
 }
 
 //returns name of new file
@@ -146,65 +128,19 @@ const char *LZW(FILE *file, char *name) {
 
 	//define initial dictionary
 	long pixels = width * height * 3;
-	long size_of_dict = dict_size(pixels);
-	dict_t *dict = make_dict(size_of_dict);
+	size_t size = 0;
+	size_t *dict_size = &size;
+	dict_t *dict = make_dict(pixels, dict_size);
 	for(int i = 0; i < 256; i++) {
-		char init_buff[10];
-		sprintf(init_buff, "%d,", i);
-		long dict_key = generate_key(init_buff);
-		long dict_idx = hash(dict_key, size_of_dict);
-		printf("%ld\n", dict_idx);
-		insert(init_buff, dict, dict_idx);
+		uint8_t *init_seq = malloc(sizeof(uint8_t));
+		*init_seq = i;
+		uint64_t key = hash(init_seq, 1);
+		bool *check_sequence;
+		int idx = search(key, dict, *dict_size, init_seq, 1,  check_sequence);
+		insert(dict, key, init_seq, 1, idx);
 	}
-	
-	for(int i = 0; i < size_of_dict; i++) {
-		if(strcmp(dict[i].val, ",") != 0) {
-			//printf("%s, %d\n", dict[i].val, i);
-		}
-	}
-	
-	//find the longest sequence in the dictionary that matches the current input
-	long max_pix_count = 0;
-	long max_val_len = 0;
-	while(max_pix_count < pixels) {
-		max_val_len++;
-		max_pix_count += max_val_len;
-	}
-	char max_num[15];
-	sprintf(max_num, "%ld", size_of_dict);
-	int max_size_of_val = strlen(max_num);
 
-	char *idx_last_known_seq;
-	char *output = malloc(size_of_dict * (max_size_of_val + 1));  //holds total output	
-	char *sequence = malloc(max_val_len * sizeof(char) * 4);	  //holds current longest sequence
-	char *next_seq = malloc(max_val_len * sizeof(char) * 4);      //holds next sequence
-	sequence[0] = next_seq[0] = output[0] = ',';
-	sequence[1] = next_seq[1] = output[1] = '\0';
-	for(int i = 0; i < height; i++) {
-		for(int j = 0; j < width; j++) {
-			char buff[5];
-			sprintf(buff, "%d,", image[i][j].rgbtRed);
-			strcat(next_seq, buff);
-			long dict_idx = search(next_seq, dict, size_of_dict);
 
-			//in case of known sequence, 
-			if(strcmp(dict[dict_idx].val, next_seq) == 0) {
-				char known_idx[5];
-				sprintf(known_idx, "%ld", dict_idx);
-				idx_last_known_seq = known_idx;
-				strcat(sequence, buff);
-			}
-			
-			//in case of new sequence, add to dictionary
-			else if(strcmp(dict[dict_idx].val, ",") == 0) {
-				strcat(output, idx_last_known_seq);
-			}
-		}
-	}	
-	
-	free(output);
-	free(sequence);
-	free(next_seq);
-	free(dict);
+	free_dict(dict, *dict_size);
 	return c_file_name;
 }
