@@ -168,18 +168,18 @@ const char *LZW(FILE *file, char *name) {
 			}
 			//new dict entry
 			if(*is_known_seq == false) {
-				seq_len = 0;
-				last_known_idx = idx;
-			}
-			//is known sequence
-			if(*is_known_seq) {
 				output[out_len] = last_known_idx;
 				out_len++;
 				uint8_t *new_seq = malloc(sizeof(uint8_t) * seq_len);
 				for(int x = 0; x < seq_len; x++) {
 					new_seq[x] = next_seq[x];
 				}
-				insert(dict, next_key, next_seq, seq_len, idx);
+				insert(dict, next_key, new_seq, seq_len, idx);
+				seq_len = 0;
+			}
+			//is known sequence
+			if(*is_known_seq) {
+				last_known_idx = idx;
 			}
 		}
 	}
@@ -202,18 +202,18 @@ const char *LZW(FILE *file, char *name) {
 			}
 			//new dict entry
 			if(*is_known_seq == false) {
-				seq_len = 0;
-				last_known_idx = idx;
-			}
-			//is known sequence
-			if(*is_known_seq) {
 				output[out_len] = last_known_idx;
 				out_len++;
 				uint8_t *new_seq = malloc(sizeof(uint8_t) * seq_len);
 				for(int x = 0; x < seq_len; x++) {
 					new_seq[x] = next_seq[x];
 				}
-				insert(dict, next_key, next_seq, seq_len, idx);
+				insert(dict, next_key, new_seq, seq_len, idx);
+				seq_len = 0;
+			}
+			//is known sequence
+			if(*is_known_seq) {
+				last_known_idx = idx;
 			}
 		}
 	}
@@ -236,17 +236,26 @@ const char *LZW(FILE *file, char *name) {
 			}
 			//unknown sequence
 			if(*is_known_seq == false) {
-
+				output[out_len] = last_known_idx;
+				out_len++;
+				uint8_t *new_seq = malloc(sizeof(uint8_t) * seq_len);
+				for(int x = 0; x < seq_len; x++) {
+					new_seq[x] = next_seq[x];
+				}
+				insert(dict, next_key, new_seq, seq_len, idx);
+				seq_len = 0;
 			}
 			//is known sequence
 			if(*is_known_seq) {
-
+				last_known_idx = idx;
 			}
 		}
 	}
+	fwrite(output, sizeof(uint8_t), out_len, temp);
+	fclose(temp);
 
 	free(output);
 	free(next_seq);
-	//free_dict(dict, *dict_size);
+	free_dict(dict, *dict_size);
 	return c_file_name;
 }
